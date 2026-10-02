@@ -1,0 +1,26 @@
+- name: Download admin.conf to host machine
+  hosts: kube_control
+  become: true
+
+  tasks:
+
+    - name: Create local kubeconfig directory
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/kubeconfig"
+        state: directory
+        mode: "0700"
+      delegate_to: localhost
+      become: false
+
+    - name: Fetch admin.conf
+      ansible.builtin.fetch:
+        src: /etc/kubernetes/admin.conf
+        dest: "{{ playbook_dir }}/kubeconfig/admin.conf"
+        flat: true
+
+    - name: Set kubeconfig permissions
+      ansible.builtin.file:
+        path: "{{ playbook_dir }}/kubeconfig/admin.conf"
+        mode: "0600"
+      delegate_to: hosts
+      become: false
