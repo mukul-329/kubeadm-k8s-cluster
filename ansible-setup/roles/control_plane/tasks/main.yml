@@ -8,7 +8,7 @@
   ansible.builtin.command:
     cmd: >
       kubeadm init
-      --apiserver-advertise-address={{ control_plane_ip }}
+      # --apiserver-advertise-address={{ control_plane_ip }}
       --pod-network-cidr={{ pod_cidr }}
   when: not kubeadm_initialized.stat.exists
 
