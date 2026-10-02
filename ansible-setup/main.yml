@@ -26,9 +26,9 @@
   roles:
     - kubectl_setup
 
-- name: Configuring Hosts machine to access k8s cluster
-  hosts: kube_hosts
-  become: true
-  roles:
-    - k8s_access
+# - name: Configuring Hosts machine to access k8s cluster
+#   hosts: kube_hosts
+#   become: true
+#   roles:
+#     - k8s_access
     
