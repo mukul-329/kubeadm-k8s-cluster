@@ -1,5 +1,5 @@
 - name: Download admin.conf to host machine
-  hosts: kube_control
+  hosts: kube_control_plane
   become: true
 
   tasks:
@@ -22,5 +22,5 @@
       ansible.builtin.file:
         path: "{{ playbook_dir }}/kubeconfig/admin.conf"
         mode: "0600"
-      delegate_to: hosts
+      delegate_to: kube_hosts
       become: false
