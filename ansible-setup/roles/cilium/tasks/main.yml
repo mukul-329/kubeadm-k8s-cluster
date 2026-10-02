@@ -24,11 +24,11 @@
     creates: /usr/local/bin/cilium
 
 - name: Check Cilium installation
-  ansible.builtin.stat:
-    path: /usr/local/bin/cilium                
-    environment:
-      KUBECONFIG: /etc/kubernetes/admin.conf
-  register: cilium_binary
+  ansible.builtin.command:
+    cmd: cilium status                      
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+  register: cilium_status
   failed_when: false
   changed_when: false
 
@@ -38,5 +38,6 @@
       cilium install
       --version {{ cilium_version }}
       --set ipam.operator.clusterPoolIPv4PodCIDRList={{ pod_cidr }}
-    environment:
-      KUBECONFIG: /etc/kubernetes/admin.conf            
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf            
+  when: "'Cilium' not in cilium_status.stdout"
