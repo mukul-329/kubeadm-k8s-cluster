@@ -10,7 +10,7 @@
       ansible.builtin.slurp:
         src: /etc/kubernetes/admin.conf
       register: admin_conf
-      delegate_to: control-plane
+      delegate_to: kube_control_plane
       run_once: true
 
     - name: Create kubeconfig directory on hosts
