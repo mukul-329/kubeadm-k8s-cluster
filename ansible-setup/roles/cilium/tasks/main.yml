@@ -1,0 +1,43 @@
+---
+- name: Download Cilium CLI version
+  ansible.builtin.shell:
+    cmd: curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt
+  register: cilium_cli_version
+  changed_when: false
+
+- name: Set Cilium CLI architecture
+  ansible.builtin.set_fact:
+    cilium_arch: >-
+      {{ 'arm64' if ansible_architecture == 'aarch64' else 'amd64' }}
+
+- name: Download Cilium CLI
+  ansible.builtin.get_url:
+    url: "https://github.com/cilium/cilium-cli/releases/download/{{ cilium_cli_version.stdout | trim }}/cilium-linux-{{ cilium_arch }}.tar.gz"
+    dest: /tmp/cilium.tar.gz
+    mode: "0644"
+
+- name: Extract Cilium CLI
+  ansible.builtin.unarchive:
+    src: /tmp/cilium.tar.gz
+    dest: /usr/local/bin
+    remote_src: true
+    creates: /usr/local/bin/cilium
+
+- name: Check Cilium installation
+  ansible.builtin.command:
+    cmd: cilium status
+    environment:
+      KUBECONFIG: /etc/kubernetes/admin.conf
+  register: cilium_status
+  failed_when: false
+  changed_when: false
+
+- name: Install Cilium
+  ansible.builtin.command:
+    cmd: >
+      cilium install
+      --version {{ cilium_version }}
+      --set ipam.operator.clusterPoolIPv4PodCIDRList={{ pod_cidr }}
+    environment:
+      KUBECONFIG: /etc/kubernetes/admin.conf
+  when: "'Cilium' not in cilium_status.stdout"
