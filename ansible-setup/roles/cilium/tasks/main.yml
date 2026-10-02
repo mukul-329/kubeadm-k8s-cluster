@@ -32,6 +32,12 @@
   failed_when: false
   changed_when: false
 
+- name: Display Cilium status
+  ansible.builtin.debug:
+    msg:
+      - "Cilium status return code: {{ cilium_status.rc }}"
+      - "{{ cilium_status.stdout }}"  
+
 - name: Install Cilium
   ansible.builtin.command:
     cmd: >
@@ -40,4 +46,4 @@
       --set ipam.operator.clusterPoolIPv4PodCIDRList={{ pod_cidr }}
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf            
-  when: "'Cilium' not in cilium_status.stdout"
+  when: cilium_status.rc != 0
