@@ -1,0 +1,4 @@
+kubernetes_version: "v1.37"
+cilium_version: "1.20.1"
+pod_cidr: "10.10.0.0/16"
+control_plane_ip: "10.0.10.100"
