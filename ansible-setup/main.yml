@@ -1,5 +1,5 @@
 ---
-- name: Prepare all Kubernetes nodes
+- name: Configuring all Kubernetes nodes
   hosts: kube_cluster
   become: true
 
@@ -16,3 +16,11 @@
   roles:
     - control_plane
     - cilium
+
+
+- name: Initialize Kubernetes worker nodes
+  hosts: kube_workers
+  become: true
+
+  roles:
+    - worker_join
