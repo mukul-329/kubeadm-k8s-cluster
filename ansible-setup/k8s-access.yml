@@ -1,26 +1,50 @@
-- name: Download admin.conf to host machine
-  hosts: kube_control_plane
+---
+- name: Configure Kubernetes admin servers
+  hosts: kube_hosts
   become: true
+  gather_facts: true
 
   tasks:
+  
+    - name: Read credentials from control plane
+      ansible.builtin.slurp:
+        src: /etc/kubernetes/admin.conf
+      register: admin_conf
+      delegate_to: control-plane
+      run_once: true
 
-    - name: Create local kubeconfig directory
+    - name: Create kubeconfig directory on hosts
       ansible.builtin.file:
-        path: "{{ playbook_dir }}/kubeconfig"
+        path: "{{ ansible_env.HOME }}/.kube"
         state: directory
         mode: "0700"
-      delegate_to: localhost
-      become: false
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
 
-    - name: Fetch admin.conf
-      ansible.builtin.fetch:
-        src: /etc/kubernetes/admin.conf
-        dest: "{{ playbook_dir }}/kubeconfig/admin.conf"
-        flat: true
-
-    - name: Set kubeconfig permissions
-      ansible.builtin.file:
-        path: "{{ playbook_dir }}/kubeconfig/admin.conf"
+    - name: Configure kubeconfig
+      ansible.builtin.copy:
+        content: "{{ admin_conf.content | b64decode }}"
+        dest: "{{ ansible_env.HOME }}/.kube/config"
+        owner: "{{ ansible_user_id }}"
+        group: "{{ ansible_user_id }}"
         mode: "0600"
-      delegate_to: kube_hosts
-      become: false
+
+    - name: Run kubectl cluster-info
+      ansible.builtin.command:
+        cmd: kubectl cluster-info
+      register: cluster_info
+      changed_when: false
+
+    - name: Display cluster information
+      ansible.builtin.debug:
+        var: cluster_info.stdout
+
+    - name: Run kubectl get nodes
+      ansible.builtin.command:
+        cmd: kubectl get nodes -o wide
+      register: kubernetes_nodes
+      changed_when: false
+
+    - name: Display Kubernetes nodes
+      ansible.builtin.debug:
+        var: kubernetes_nodes.stdout
