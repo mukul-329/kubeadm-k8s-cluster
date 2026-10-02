@@ -25,7 +25,7 @@
 
 - name: Check Cilium installation
   ansible.builtin.stat:
-    path: /usr/local/bin/cilium                # Change to the exact path where your Cilium binary sits 
+    path: /usr/local/bin/cilium                
     environment:
       KUBECONFIG: /etc/kubernetes/admin.conf
   register: cilium_binary
@@ -39,4 +39,4 @@
       --version {{ cilium_version }}
       --set ipam.operator.clusterPoolIPv4PodCIDRList={{ pod_cidr }}
     environment:
-      KUBECONFIG: /etc/kubernetes/admin.conf            # when: lookup('ansible.builtin.which', 'cilium', errors='ignore') == none
+      KUBECONFIG: /etc/kubernetes/admin.conf            
