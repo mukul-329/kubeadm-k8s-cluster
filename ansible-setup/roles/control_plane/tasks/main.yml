@@ -24,3 +24,9 @@
     dest: /root/.kube/config
     remote_src: true
     mode: "0600"
+
+- name: Generate Kubernetes worker join command
+  ansible.builtin.command:
+    cmd: kubeadm token create --print-join-command
+  register: kubeadm_join_command
+  changed_when: false   
