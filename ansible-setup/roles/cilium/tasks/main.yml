@@ -40,4 +40,4 @@
       --set ipam.operator.clusterPoolIPv4PodCIDRList={{ pod_cidr }}
     environment:
       KUBECONFIG: /etc/kubernetes/admin.conf
-  when: not cilium_binary.stat.exists
+  when: lookup('ansible.builtin.which', 'cilium', errors='ignore') == none
