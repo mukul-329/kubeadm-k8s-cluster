@@ -1,49 +1,42 @@
 ---
-- name: Install kubectl and prepare host machine
-  hosts: localhost
-  connection: local
-  become: true
+- name: Get latest stable kubectl version
+  ansible.builtin.shell:
+    cmd: curl -L -s https://dl.k8s.io/release/stable.txt
+  register: kubectl_version
+  changed_when: false
 
-  tasks:
+- name: Download kubectl
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/release/{{ kubectl_version.stdout | trim }}/bin/linux/amd64/kubectl"
+    dest: /tmp/kubectl
+    mode: "0755"
 
-    - name: Get latest stable kubectl version
-      ansible.builtin.shell:
-        cmd: curl -L -s https://dl.k8s.io/release/stable.txt
-      register: kubectl_version
-      changed_when: false
+- name: Download kubectl checksum
+  ansible.builtin.get_url:
+    url: "https://dl.k8s.io/release/{{ kubectl_version.stdout | trim }}/bin/linux/amd64/kubectl.sha256"
+    dest: /tmp/kubectl.sha256
+    mode: "0644"
 
-    - name: Download kubectl
-      ansible.builtin.get_url:
-        url: "https://dl.k8s.io/release/{{ kubectl_version.stdout | trim }}/bin/linux/amd64/kubectl"
-        dest: /tmp/kubectl
-        mode: "0755"
+- name: Verify kubectl checksum
+  ansible.builtin.shell:
+    cmd: |
+      cd /tmp
+      echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+  changed_when: false
 
-    - name: Download kubectl checksum
-      ansible.builtin.get_url:
-        url: "https://dl.k8s.io/release/{{ kubectl_version.stdout | trim }}/bin/linux/amd64/kubectl.sha256"
-        dest: /tmp/kubectl.sha256
-        mode: "0644"
+- name: Install kubectl
+  ansible.builtin.copy:
+    src: /tmp/kubectl
+    dest: /usr/local/bin/kubectl
+    remote_src: true
+    mode: "0755"
 
-    - name: Verify kubectl checksum
-      ansible.builtin.shell:
-        cmd: |
-          cd /tmp
-          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
-      changed_when: false
+- name: Check kubectl version
+  ansible.builtin.command:
+    cmd: kubectl version --client
+  register: kubectl_client_version
+  changed_when: false
 
-    - name: Install kubectl
-      ansible.builtin.copy:
-        src: /tmp/kubectl
-        dest: /usr/local/bin/kubectl
-        remote_src: true
-        mode: "0755"
-
-    - name: Check kubectl version
-      ansible.builtin.command:
-        cmd: kubectl version --client
-      register: kubectl_client_version
-      changed_when: false
-
-    - name: Display kubectl version
-      ansible.builtin.debug:
-        var: kubectl_client_version.stdout
+- name: Display kubectl version
+  ansible.builtin.debug:
+    var: kubectl_client_version.stdout
