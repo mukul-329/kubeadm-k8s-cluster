@@ -39,5 +39,4 @@
       --version {{ cilium_version }}
       --set ipam.operator.clusterPoolIPv4PodCIDRList={{ pod_cidr }}
     environment:
-      KUBECONFIG: /etc/kubernetes/admin.conf
-  when: lookup('ansible.builtin.which', 'cilium', errors='ignore') == none
+      KUBECONFIG: /etc/kubernetes/admin.conf            # when: lookup('ansible.builtin.which', 'cilium', errors='ignore') == none
