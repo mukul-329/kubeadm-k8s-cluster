@@ -1,0 +1,26 @@
+---
+- name: Check whether Kubernetes is already initialized
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubeadm_initialized
+
+- name: Initialize Kubernetes control plane
+  ansible.builtin.command:
+    cmd: >
+      kubeadm init
+      --apiserver-advertise-address={{ control_plane_ip }}
+      --pod-network-cidr={{ pod_cidr }}
+  when: not kubeadm_initialized.stat.exists
+
+- name: Create kubeconfig directory
+  ansible.builtin.file:
+    path: /root/.kube
+    state: directory
+    mode: "0700"
+
+- name: Copy admin kubeconfig
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /root/.kube/config
+    remote_src: true
+    mode: "0600"
