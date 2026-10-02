@@ -2,25 +2,33 @@
 - name: Configuring all Kubernetes nodes
   hosts: kube_cluster
   become: true
-
   roles:
     - common
     - containerd
     - kubernetes
 
-
 - name: Initialize Kubernetes control plane
   hosts: kube_control_plane
   become: true
-
   roles:
     - control_plane
     - cilium
 
-
 - name: Initialize Kubernetes worker nodes
   hosts: kube_workers
   become: true
-
   roles:
     - worker_join
+
+- name: Initializing kubectl on Hosts machine
+  hosts: kube_hosts
+  become: true
+  roles:
+    - kubectl_setup
+
+- name: Configuring Hosts machine to access k8s cluster
+  hosts: kube_hosts
+  become: true
+  roles:
+    - k8s_access
+    
