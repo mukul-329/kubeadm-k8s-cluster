@@ -3,9 +3,9 @@
   hosts: kube_cluster
   become: true
   roles:
-    - common
-    - containerd
-    - kubernetes
+    - common                                # Role to enable ip forwarding on all cluster (including control node)
+    - containerd                            # Installing CRI on all cluster nodes (including control node)
+    - kubernetes                            # Installing kubeadm and kubelet on all cluster nodes (including control node)
 
 - name: Initialize Kubernetes control plane
   hosts: kube_control_plane
