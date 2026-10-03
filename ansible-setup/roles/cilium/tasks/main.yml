@@ -23,6 +23,15 @@
     remote_src: true
     creates: /usr/local/bin/cilium
 
+- name: Configure permanent KUBECONFIG environment variable
+  ansible.builtin.copy:
+    dest: /etc/profile.d/kubernetes.sh
+    content: |
+      export KUBECONFIG=/etc/kubernetes/admin.conf
+    owner: root
+    group: root
+    mode: "0644"
+
 - name: Check Cilium installation
   ansible.builtin.command:
     cmd: cilium status                      
