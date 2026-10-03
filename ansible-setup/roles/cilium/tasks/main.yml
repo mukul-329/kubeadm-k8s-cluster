@@ -24,14 +24,9 @@
     creates: /usr/local/bin/cilium
 
 - name: Configure permanent KUBECONFIG environment variable
-  ansible.builtin.copy:
-    dest: /etc/profile.d/kubernetes.sh
-    content: |
-      export KUBECONFIG=/etc/kubernetes/admin.conf
-    become: true
-    owner: root
-    group: root
-    mode: "0644"
+  ansible.builtin.shell: | 
+    export KUBECONFIG=/etc/kubernetes/admin.conf
+  become: true
 
 - name: Check Cilium installation
   ansible.builtin.command:
