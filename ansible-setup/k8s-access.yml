@@ -1,11 +1,16 @@
 ---
+- name: Initializing kubectl on Hosts machine
+  hosts: kube_hosts
+  become: true
+  roles:
+    - kubectl_setup
+
 - name: Configure Kubernetes admin servers
   hosts: kube_hosts
   become: true
   gather_facts: true
 
   tasks:
-  
     - name: Read credentials from control plane
       ansible.builtin.slurp:
         src: /etc/kubernetes/admin.conf
