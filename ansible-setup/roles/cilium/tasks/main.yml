@@ -28,6 +28,7 @@
     dest: /etc/profile.d/kubernetes.sh
     content: |
       export KUBECONFIG=/etc/kubernetes/admin.conf
+    become: true
     owner: root
     group: root
     mode: "0644"
@@ -37,6 +38,7 @@
     cmd: cilium status                      
   environment:
     KUBECONFIG: /etc/kubernetes/admin.conf
+  become: true  
   register: cilium_status
   failed_when: false
   changed_when: false
