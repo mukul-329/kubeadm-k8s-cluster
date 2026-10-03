@@ -1,55 +1,208 @@
 ---
-- name: Initializing kubectl on Hosts machine
+- name: Configure kubectl on local host
   hosts: kube_hosts
-  become: true
-  roles:
-    - kubectl_setup
-
-- name: Configure Kubernetes admin servers
-  hosts: kube_hosts
-  become: true
   gather_facts: true
 
+  vars:
+    kubectl_tmp_dir: "/tmp/kubectl-install"
+    kubeconfig_path: "{{ lookup('env', 'HOME') }}/.kube/config"
+    control_plane_host: "{{ groups['kube_control_plane'][0] }}"
+
   tasks:
-    - name: Read credentials from control plane
+
+    # ============================================================
+    # 1. Get latest stable kubectl version
+    # ============================================================
+
+    - name: Get latest stable kubectl version
+      ansible.builtin.shell:
+        cmd: curl -L -s https://dl.k8s.io/release/stable.txt
+      register: kubectl_version
+      changed_when: false
+
+
+    - name: Display kubectl version to install
+      ansible.builtin.debug:
+        msg: "Installing kubectl {{ kubectl_version.stdout | trim }}"
+
+
+    # ============================================================
+    # 2. Create temporary directory
+    # ============================================================
+
+    - name: Create kubectl temporary directory
+      ansible.builtin.file:
+        path: "{{ kubectl_tmp_dir }}"
+        state: directory
+        mode: "0755"
+
+
+    # ============================================================
+    # 3. Download kubectl
+    # ============================================================
+
+    - name: Download kubectl
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_version.stdout | trim }}/bin/linux/amd64/kubectl"
+        dest: "{{ kubectl_tmp_dir }}/kubectl"
+        mode: "0755"
+
+
+    # ============================================================
+    # 4. Download kubectl checksum
+    # ============================================================
+
+    - name: Download kubectl checksum
+      ansible.builtin.get_url:
+        url: "https://dl.k8s.io/release/{{ kubectl_version.stdout | trim }}/bin/linux/amd64/kubectl.sha256"
+        dest: "{{ kubectl_tmp_dir }}/kubectl.sha256"
+        mode: "0644"
+
+
+    # ============================================================
+    # 5. Verify kubectl checksum
+    # ============================================================
+
+    - name: Verify kubectl checksum
+      ansible.builtin.shell:
+        cmd: |
+          cd "{{ kubectl_tmp_dir }}"
+          echo "$(cat kubectl.sha256)  kubectl" | sha256sum --check
+      register: kubectl_checksum
+      changed_when: false
+
+
+    - name: Display checksum result
+      ansible.builtin.debug:
+        var: kubectl_checksum.stdout
+
+
+    # ============================================================
+    # 6. Install kubectl
+    # ============================================================
+
+    - name: Install kubectl
+      ansible.builtin.command:
+        cmd: >
+          install
+          -o root
+          -g root
+          -m 0755
+          {{ kubectl_tmp_dir }}/kubectl
+          /usr/local/bin/kubectl
+      become: true
+
+
+    # ============================================================
+    # 7. Verify kubectl installation
+    # ============================================================
+
+    - name: Check kubectl client version
+      ansible.builtin.command:
+        cmd: kubectl version --client
+      register: kubectl_client_version
+      changed_when: false
+
+
+    - name: Display kubectl client version
+      ansible.builtin.debug:
+        var: kubectl_client_version.stdout
+
+
+    # ============================================================
+    # 8. Read admin.conf from control plane
+    # ============================================================
+
+    - name: Read admin.conf from control plane
       ansible.builtin.slurp:
         src: /etc/kubernetes/admin.conf
       register: admin_conf
-      delegate_to: "{{ groups['kube_control_plane'][0] }}"
+      delegate_to: "{{ control_plane_host }}"
+      become: true
       run_once: true
 
-    - name: Create kubeconfig directory on hosts
+
+    # ============================================================
+    # 9. Create ~/.kube directory on localhost
+    # ============================================================
+
+    - name: Create .kube directory
       ansible.builtin.file:
-        path: "{{ ansible_env.HOME }}/.kube"
+        path: "{{ lookup('env', 'HOME') }}/.kube"
         state: directory
         mode: "0700"
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
 
-    - name: Configure kubeconfig
+
+    # ============================================================
+    # 10. Copy admin.conf content to localhost
+    # ============================================================
+
+    - name: Configure kubeconfig on localhost
       ansible.builtin.copy:
         content: "{{ admin_conf.content | b64decode }}"
-        dest: "{{ ansible_env.HOME }}/.kube/config"
-        owner: "{{ ansible_user_id }}"
-        group: "{{ ansible_user_id }}"
+        dest: "{{ kubeconfig_path }}"
         mode: "0600"
+
+
+    # ============================================================
+    # 11. Verify kubeconfig exists
+    # ============================================================
+
+    - name: Check kubeconfig
+      ansible.builtin.stat:
+        path: "{{ kubeconfig_path }}"
+      register: kubeconfig_file
+
+
+    - name: Display kubeconfig status
+      ansible.builtin.debug:
+        msg:
+          - "Kubeconfig: {{ kubeconfig_path }}"
+          - "Exists: {{ kubeconfig_file.stat.exists }}"
+          - "Permissions: {{ kubeconfig_file.stat.mode }}"
+
+
+    # ============================================================
+    # 12. Test Kubernetes cluster connectivity
+    # ============================================================
 
     - name: Run kubectl cluster-info
       ansible.builtin.command:
         cmd: kubectl cluster-info
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
       register: cluster_info
       changed_when: false
+
 
     - name: Display cluster information
       ansible.builtin.debug:
         var: cluster_info.stdout
 
-    - name: Run kubectl get nodes
+
+    # ============================================================
+    # 13. Get Kubernetes nodes
+    # ============================================================
+
+    - name: Get Kubernetes nodes
       ansible.builtin.command:
         cmd: kubectl get nodes -o wide
+      environment:
+        KUBECONFIG: "{{ kubeconfig_path }}"
       register: kubernetes_nodes
       changed_when: false
+
 
     - name: Display Kubernetes nodes
       ansible.builtin.debug:
         var: kubernetes_nodes.stdout
+
+
+    # ============================================================
+    # 14. Cleanup
+    # ============================================================
+
+    - name: Remove temporary kubectl files
+      ansible.builtin.file:
+        path: "{{ kubectl_tmp_dir }}"
+        state: absent
