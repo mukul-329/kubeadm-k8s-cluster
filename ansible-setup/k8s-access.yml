@@ -143,7 +143,10 @@
         dest: "{{ kubeconfig_path }}"
         mode: "0600"
 
-
+    - name: Set kubeconfig permissions
+      ansible.builtin.file:
+        path: "{{ kubeconfig_path }}"
+        mode: "0600"
     # ============================================================
     # 11. Verify kubeconfig exists
     # ============================================================
