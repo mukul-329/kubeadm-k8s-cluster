@@ -20,11 +20,11 @@
   roles:
     - worker_join
 
-- name: Initializing kubectl on Hosts machine
-  hosts: kube_hosts
-  become: true
-  roles:
-    - kubectl_setup
+# - name: Initializing kubectl on Hosts machine
+#   hosts: kube_hosts
+#   become: true
+#   roles:
+#     - kubectl_setup
 
 # - name: Configuring Hosts machine to access k8s cluster
 #   hosts: kube_hosts
